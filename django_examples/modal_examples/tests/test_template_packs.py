@@ -32,6 +32,8 @@ RENAMES = {
     'float-left': 'float-start', 'float-right': 'float-end',
     'text-left': 'text-start', 'text-right': 'text-end',
     'custom-select': 'form-select',
+    # crispy-bootstrap5 spells the field wrapper mb-3, so the packs do too.
+    'form-group': 'mb-3',
     'custom-file': 'form-control',
     'sr-only': 'visually-hidden',
     'btn-block': 'w-100',
@@ -234,14 +236,17 @@ class CrispyPackTests(SimpleTestCase):
 
     def _form(self):
         from django import forms
+        from django_modals.fields import FieldEx
         from django_modals.forms import CrispyForm
         from django_modals.form_helpers import TwoColumnRegularHelper
 
         class Demo(CrispyForm):
             name = forms.CharField()
+            colour = forms.ChoiceField(choices=[('r', 'Red'), ('b', 'Blue')])
 
             def post_init(self, *args, **kwargs):
-                return [self.row('name')]
+                return [self.row('name'),
+                        FieldEx('colour', template='django_modals/fields/label_checkbox.html')]
 
         return Demo(helper_class=TwoColumnRegularHelper)
 
@@ -253,9 +258,12 @@ class CrispyPackTests(SimpleTestCase):
 
     def test_rendered_form_carries_this_pack_s_class_names(self):
         from crispy_forms.utils import render_crispy_form
+        # custom-select/form-select comes from the packed label_checkbox template, reached
+        # through its flat path by crispy's own field rendering -- the path downstream
+        # FieldEx(template=...) arguments take.
         expected = {
-            'bootstrap4': (['form-group row', 'form-row'], ['row mb-3']),
-            'bootstrap5': (['row mb-3'], ['form-group row', 'form-row']),
+            'bootstrap4': (['form-group row', 'form-row', 'custom-select'], ['mb-3 row', 'form-select']),
+            'bootstrap5': (['mb-3 row', 'form-select'], ['form-group row', 'form-row', 'custom-select']),
         }
         for pack, (wanted, unwanted) in expected.items():
             with override_settings(DJANGO_MODALS_TEMPLATE_PACK=pack):

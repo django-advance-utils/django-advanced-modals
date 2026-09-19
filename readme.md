@@ -77,3 +77,8 @@ modals.js, because Bootstrap 5 reads only their `data-bs-` spelling.
   is a separate job.
 - `ajax_helpers.includes.Bootstrap` is pinned at 4.6.0 upstream, and its tooltip template still
   uses `.arrow` rather than `.tooltip-arrow`.
+- Fields sit a little further apart inside a modal on Bootstrap 5. `modals.css` compacts them
+  with a rule on `.form-group`, and Bootstrap 5 spells that wrapper `mb-3`, whose margin is an
+  `!important` utility. Overriding it would mean `.modal-content .mb-3 { margin-bottom: .5rem
+  !important }`, which would also catch a project's own `mb-3` inside a modal, so it is left
+  out rather than applied quietly.

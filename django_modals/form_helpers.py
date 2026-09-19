@@ -15,9 +15,10 @@ class WrapperHelper(FormHelper):
         super().__init__(*args, **kwargs)
         if hasattr(self, 'form_attrs'):
             self.attrs = self.form_attrs
-        # The form is the first positional argument crispy passes; it carries the request when
-        # the modal view built it, and None otherwise.
-        self.request = getattr(args[0], 'request', None) if args else None
+        # crispy passes the form positionally, but FormHelper(form=...) is equally valid. The
+        # form carries the request when a modal view built it, and None otherwise.
+        form = args[0] if args else kwargs.get('form')
+        self.request = getattr(form, 'request', None)
         # Point crispy's own rendering at the same pack the modal templates use. Without this a
         # project could set DJANGO_MODALS_TEMPLATE_PACK to bootstrap5 and still get Bootstrap 4
         # markup out of every crispy layout object, silently. FormHelper has no template_pack

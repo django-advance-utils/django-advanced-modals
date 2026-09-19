@@ -70,8 +70,10 @@ PACK_CLASSES = {
         'margin_end': 'mr-2',
     },
     'bootstrap5': {
-        # form-group went entirely in Bootstrap 5; the margin it carried is now a utility.
-        'form_group_row': 'row mb-3',
+        # form-group went in Bootstrap 5; crispy-bootstrap5's own field.html spells the
+        # wrapper mb-3, and the packs have to agree or a form mixing plain fields with a
+        # packed one gets two different vertical rhythms.
+        'form_group_row': 'mb-3 row',
         # form-row went too -- a plain row with Bootstrap 5's own gutters replaces it.
         'fields_wrap': 'row',
         'text_end': 'text-end',

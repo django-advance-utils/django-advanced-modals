@@ -197,14 +197,9 @@ input::-webkit-inner-spin-button {
 
 }
 
-/* Bootstrap 5 dropped .form-group, but both template packs still spell the field wrapper that
-   way so this library's own spacing applies identically on either version. On Bootstrap 4 this
-   repeats what Bootstrap already sets; on Bootstrap 5 it is the only thing giving a field its
-   bottom margin. The rule below it is more specific, so order here does not matter. */
-.form-group {
-    margin-bottom: 1rem;
-}
-
+/* Bootstrap 4 only: the Bootstrap 5 packs spell this wrapper mb-3, whose margin is an
+   !important utility and so is left alone. Fields are a little further apart in a modal on
+   Bootstrap 5 than on Bootstrap 4 because of it. */
 .modal-content .form-group {
     margin-bottom: .5rem;
 }
