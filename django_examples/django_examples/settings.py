@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django_datatables',
     'django_modals',
     'crispy_forms',
+    'crispy_bootstrap5',
     'modal_examples',
     'ajax_helpers',
     'django_menus',
@@ -59,6 +60,14 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'django_examples.urls'
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+# crispy 1.14's own default list stops at bootstrap4 and it raises on anything outside it, so
+# bootstrap5 has to be named here before a form can render with it.
+CRISPY_ALLOWED_TEMPLATE_PACKS = ('bootstrap', 'uni_form', 'bootstrap3', 'bootstrap4', 'bootstrap5')
+
+# Normally just a pack name ('bootstrap4' or 'bootstrap5'). The example app serves both, so it
+# points at a callable that reads the version toggle in the nav bar instead. django-modals hands
+# the same name to crispy for each form, so the two never disagree.
+DJANGO_MODALS_TEMPLATE_PACK = 'modal_examples.context_processors.template_pack_for_request'
 
 TEMPLATES = [
     {
@@ -71,6 +80,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'modal_examples.context_processors.bootstrap_version',
             ],
         },
     },

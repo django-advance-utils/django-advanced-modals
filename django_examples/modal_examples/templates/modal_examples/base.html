@@ -5,8 +5,15 @@
 <head>
  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {% lib_include 'ajax_helpers' 'Bootstrap' 'FontAwesome' module='ajax_helpers.includes' %}
-    {% lib_include 'Modals' 'Toggle' 'select2' 'JQueryUI' 'MonthPicker' 'TinyMce' 'ColourPicker' 'JFormset' module='django_modals.includes' %}
+    {% if bootstrap_version == '5' %}
+        {# Bootstrap 5 is not in ajax_helpers, so it comes from this app's own includes, and #}
+        {# after the ajax_helpers group so that jQuery is already there for it to plug into. #}
+        {% lib_include 'ajax_helpers' 'FontAwesome' module='ajax_helpers.includes' %}
+        {% lib_include 'Bootstrap5' 'Modals' 'Toggle5' 'select2' 'JQueryUI' 'MonthPicker' 'TinyMce' 'ColourPicker' 'JFormset' module='django_modals.includes' %}
+    {% else %}
+        {% lib_include 'ajax_helpers' 'Bootstrap' 'FontAwesome' module='ajax_helpers.includes' %}
+        {% lib_include 'Modals' 'Toggle' 'select2' 'JQueryUI' 'MonthPicker' 'TinyMce' 'ColourPicker' 'JFormset' module='django_modals.includes' %}
+    {% endif %}
     {% lib_include module='django_menus.includes' %}
     {% lib_include module='show_src_code.includes' %}
     {% lib_include 'datatable' module='django_datatables.includes' %}

@@ -1,12 +1,18 @@
 <!doctype html>
-{% load ajax_helpers %}
+{% load ajax_helpers modal_tags %}
 
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {% lib_include 'ajax_helpers' 'Bootstrap' 'FontAwesome' module='ajax_helpers.includes' %}
-    {% lib_include 'Modals' 'Toggle' 'select2' 'JQueryUI' 'TinyMce' module='django_modals.includes' %}
+    {% pack_name as pack %}
+    {% if pack == 'bootstrap5' %}
+        {% lib_include 'ajax_helpers' 'FontAwesome' module='ajax_helpers.includes' %}
+        {% lib_include 'Bootstrap5' 'Modals' 'Toggle5' 'select2' 'JQueryUI' 'TinyMce' module='django_modals.includes' %}
+    {% else %}
+        {% lib_include 'ajax_helpers' 'Bootstrap' 'FontAwesome' module='ajax_helpers.includes' %}
+        {% lib_include 'Modals' 'Toggle' 'select2' 'JQueryUI' 'TinyMce' module='django_modals.includes' %}
+    {% endif %}
 
 </head>
 <body>

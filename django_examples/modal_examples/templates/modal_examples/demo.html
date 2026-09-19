@@ -3,7 +3,9 @@
 
 {% block body %}
     <nav class="navbar navbar-expand-lg bg-dark navbar-dark active-bar">
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+        <button class="navbar-toggler" type="button"
+                {% if bootstrap_version == '5' %}data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+                {% else %}data-toggle="collapse" data-target="#navbarSupportedContent"{% endif %}
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -17,8 +19,12 @@
         </div>
     </nav>
 
-    <div class="m-1 text-right">
+    <div class="m-1 {% if bootstrap_version == '5' %}text-end{% else %}text-right{% endif %}">
      <img src="{{ version_img }}">
+      {# django-modals ships a template pack per Bootstrap version; this flips the whole page #}
+      {# between them so both can be looked at without restarting the server. #}
+      <a class="btn btn-outline-primary btn-sm" href="{{ bootstrap_toggle_url }}">
+          Bootstrap {{ bootstrap_version }} &rarr; {{ bootstrap_other_version }}</a>
       <a class="btn btn-outline-secondary btn-sm" href="{{ home_page }}"><i class="fab fa-github text-dark"></i>GitHub</a>
     </div>
     {% block contents %}
@@ -30,7 +36,7 @@
                 <div style="min-width:320px">
                     {% filter_control datatable %}
                 </div>
-                <div class="px-4 d-block float-left w-50">
+                <div class="px-4 d-block {% if bootstrap_version == '5' %}float-start{% else %}float-left{% endif %} w-50">
                     {{ datatable.render|safe }}vv
                 </div>
             </div>

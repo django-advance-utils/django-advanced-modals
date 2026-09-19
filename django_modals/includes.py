@@ -15,6 +15,24 @@ class Modals(SourceBase):
     legacy_js = 'modals_legacy.js'
 
 
+class Bootstrap5(SourceBase):
+    """Bootstrap 5 from the CDN.
+
+    ajax_helpers ships Bootstrap 4 (``ajax_helpers.includes.Bootstrap``, pinned at 4.6.0) and
+    has no Bootstrap 5 equivalent yet, so the counterpart lives here until it does -- otherwise
+    nothing that renders its own page, such as blank_page_form.html, could load the version its
+    template pack is written for.
+
+    Load it *after* the ``ajax_helpers`` group so jQuery is already on the page: modals.js is
+    written entirely against Bootstrap's jQuery plugin interface, and Bootstrap 5 only registers
+    that interface, and only keeps firing jQuery events beside its native ones, when it finds
+    jQuery at load time.
+    """
+    cdn_path = 'cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/'
+    js_filename = 'bootstrap.bundle.min.js'
+    css_filename = 'bootstrap.min.css'
+
+
 class Toggle(SourceBase):
     static_path = 'django_modals/'
     cdn_path = 'cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/'
