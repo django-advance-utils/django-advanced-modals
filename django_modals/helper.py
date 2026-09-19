@@ -4,6 +4,8 @@ from ajax_helpers.templatetags.ajax_helpers import button_javascript
 from django.urls import reverse, resolve, NoReverseMatch
 from django.template.loader import render_to_string
 from crispy_forms.layout import HTML, Div
+
+from django_modals.packs import pack_attribute
 from django.utils.safestring import mark_safe
 
 
@@ -45,10 +47,13 @@ def make_slug(*args, make_pk=False):
     return slug
 
 
-def attr(attributes, tooltip):
+def attr(attributes, tooltip, request=None):
     attributes = {} if attributes is None else attributes
     if tooltip:
-        attributes.update({'title': tooltip, 'data-tooltip': 'tooltip', 'data-placement': 'top'})
+        # data-tooltip is ajax_helpers' own marker and is the same on either Bootstrap; the
+        # placement is Bootstrap's own attribute and gained a bs- prefix in Bootstrap 5.
+        attributes.update({'title': tooltip, 'data-tooltip': 'tooltip',
+                           pack_attribute('placement', request): 'top'})
     return attributes
 
 

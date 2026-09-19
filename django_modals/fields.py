@@ -3,6 +3,8 @@ from django.forms.utils import pretty_name
 from crispy_forms.layout import Field, Div
 from crispy_forms.utils import TEMPLATE_PACK
 
+from django_modals.packs import pack_class
+
 
 class Flex(Div):
     def __init__(self, *args, **kwargs):
@@ -20,8 +22,12 @@ class Flex(Div):
 
 class MultiFieldRow(Div):
 
-    def __init__(self, label, *fields, form_show_labels=False, form_class='', wrapper_class='d-flex mr-2',
+    def __init__(self, label, *fields, form_show_labels=False, form_class='', wrapper_class=None,
                  field_class='input-group-sm', **kwargs):
+        # Resolved here rather than in the signature so that the default follows the template
+        # pack setting instead of being fixed at import time.
+        if wrapper_class is None:
+            wrapper_class = f"d-flex {pack_class('margin_end')}"
         self.label = label
         extra_classes = FieldEx.get_extra_classes(locals())
         self.kwargs = kwargs
@@ -142,7 +148,7 @@ class FieldEx(Field):
 class MultiField(FieldEx):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('label_class', 'col-form-label-sm')
-        kwargs.setdefault('field_class', 'input-group-sm mr-2')
+        kwargs.setdefault('field_class', f"input-group-sm {pack_class('margin_end')}")
         kwargs.setdefault('wrapper_class', 'mb-0')
         if 'width' in kwargs:
             kwargs['style'] = f'width:{kwargs.pop("width")}px'

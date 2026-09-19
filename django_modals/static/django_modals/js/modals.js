@@ -127,11 +127,36 @@ if (typeof django_modal == 'undefined') {
             });
         }
 
+        function release_focus_trap() {
+            // Let a nested modal keep the focus its parent would otherwise pull back.
+            // Bootstrap 4 enforces focus with a jQuery handler in the .bs.modal namespace, so
+            // turning that off is enough. Bootstrap 5 replaced it with a FocusTrap holding its own
+            // listeners on document, which jQuery cannot see or remove, so every open modal's trap
+            // is deactivated through its instance instead. _focustrap is private API, hence the
+            // guards around it.
+            $(document).off('focusin.bs.modal');
+            if (window.bootstrap && window.bootstrap.Modal) {
+                $('.modal').each(function () {
+                    var instance = window.bootstrap.Modal.getInstance(this);
+                    if (instance && instance._focustrap) {
+                        instance._focustrap.deactivate();
+                    }
+                });
+            }
+        }
+
         function init_modal_container(modal_container){
             var left_pos;
             var modal_element = modal_container.children();
             modal_element.css('z-index', 1040 + (10 * open_modals));
-            modal_element.modal({'backdrop': false})
+            // Bootstrap 4's jQuery plugin shows the modal when it is handed an options object.
+            // Bootstrap 5's only constructs the instance and acts on a string, so the show has to
+            // be asked for separately; Bootstrap 4's show() returns early when the modal is already
+            // shown or transitioning, which makes the second call a no-op there.
+            // backdrop and keyboard are passed here rather than written as data- attributes on the
+            // element because Bootstrap 5 reads only their data-bs- spelling.
+            modal_element.modal({'backdrop': false, 'keyboard': false})
+            modal_element.modal('show')
             var modal_dialog = $('.modal-dialog', modal_element).first()
             if ((document.documentElement.clientWidth - modal_dialog.width()) > 20){
                 left_pos = open_modals*10 - 20
@@ -157,7 +182,7 @@ if (typeof django_modal == 'undefined') {
             });
             modal_element.on('shown.bs.modal', function (event) {
                 if(open_modals > 1) {
-                    $(document).off('focusin.modal');
+                    release_focus_trap();
                 }
                 var modalDiv = modal_div()
                 var data_focus = modalDiv.attr('data-focus');

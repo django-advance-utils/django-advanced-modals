@@ -1,0 +1,30 @@
+{% load crispy_forms_field %}
+{% if field.is_hidden %}
+    {{ field }}
+{% else %}
+    <{% if tag %}{{ tag }}{% else %}div{% endif %} id="div_{{ field.auto_id }}" class="form-group{% if 'form-horizontal' in form_class %} row{% endif %}{% if wrapper_class %} {{ wrapper_class }}{% endif %}{% if field.css_classes %} {{ field.css_classes }}{% endif %}">
+        {% if field.label and form_show_labels %}
+            <label {% if field.id_for_label %}for="{{ field.id_for_label }}" {% endif %}class="{% if 'form-horizontal' in form_class %}col-form-label {% endif %}{{ label_class }}{% if field.field.required %} requiredField{% endif %}">
+                {{ field.label|safe }}{% if field.field.required %}<span class="asteriskField">*</span>{% endif %}
+            </label>
+        {% endif %}
+
+        {# crispy-bootstrap5 renders radios and multiple checkboxes from one template, keyed on #}
+        {# the option's own type, where the Bootstrap 4 pack has a file for each. #}
+        {% if field|is_checkboxselectmultiple or field|is_radioselect %}
+            {% include 'bootstrap5/layout/radio_checkbox_select.html' %}
+        {% endif %}
+
+        {% if not field|is_checkboxselectmultiple and not field|is_radioselect %}
+                <div class="{{ field_class }}">
+                    {% if field|is_select and use_custom_control %}
+                         {% crispy_field field 'class' 'form-select' %}
+                    {% else %}
+                        {% crispy_field field %}
+                    {% endif %}
+                    {% include 'bootstrap5/layout/help_text_and_errors.html' %}
+                </div>
+            {% endif %}
+
+    </{% if tag %}{{ tag }}{% else %}div{% endif %}>
+{% endif %}

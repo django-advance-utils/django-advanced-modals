@@ -15,6 +15,7 @@ from html_classes.font_awesome import font_awesome
 from html_classes.html import HtmlButton
 from django_modals.helper import (render_modal, modal_button, modal_button_group, ajax_modal_redirect,
                                   modal_button_method, ajax_modal_replace)
+from django_modals.packs import pack_attribute
 
 
 class ModalException(Exception):
@@ -38,9 +39,13 @@ class BaseModalMixin(AjaxHelpers):
         if not hasattr(self, 'modal_mode'):
             self.modal_mode = True
         self.top_menu = HtmlMenu(template='django_modals/modal_menu.html')
+        # The dismiss attribute is spelled per Bootstrap version and the request is not here
+        # yet, so the button is built now -- to keep its place at the head of the menu, in front
+        # of whatever a subclass adds -- and given the attribute in get_context_data.
+        self.header_close_button = None
         if not getattr(self, 'no_header_x', None):
-            self.top_menu.add_items(HtmlMenuItem(html=HtmlButton(data_dismiss='modal',
-                                                                 contents=font_awesome('fas fa-times'))))
+            self.header_close_button = HtmlButton(contents=font_awesome('fas fa-times'))
+            self.top_menu.add_items(HtmlMenuItem(html=self.header_close_button))
         self.slug = {}
 
     def get_context_data(self, **kwargs):
@@ -51,6 +56,8 @@ class BaseModalMixin(AjaxHelpers):
         context['center_header'] = kwargs.get('center_header', getattr(self, 'center_header', None))
         context['size'] = kwargs.get('size', self.size)
         context['modal_type'] = self.kwargs.get('modal_type')
+        if self.header_close_button is not None:
+            self.header_close_button.add_attribute(pack_attribute('dismiss', self.request), 'modal')
         context['header_menu'] = self.top_menu
         return context
 

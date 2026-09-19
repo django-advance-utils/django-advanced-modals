@@ -10,6 +10,7 @@ from django.utils.safestring import mark_safe
 
 from .fields import FieldEx
 from .form_helpers import HorizontalHelper
+from .packs import pack_class
 from .processes import PROCESS_VIEW, PROCESS_EDIT_DELETE, PROCESS_VIEW_EDIT, PROCESS_DELETE, process_data
 
 
@@ -71,7 +72,8 @@ class CrispyFormMixin:
         return result
 
     def __init__(self, *args, pk=None, no_buttons=None, modal_title=None, form_setup=None, slug=None,
-                 request_user=None, form_id=None, process=None, layout_field_params=None, layout_field_classes=None,
+                 request_user=None, request=None, form_id=None, process=None, layout_field_params=None,
+                 layout_field_classes=None,
                  helper_class=HorizontalHelper, progress_bar=None,
                  header_html=None, clean=None, page_commands=None, layout=None, **kwargs):
         self.layout = layout
@@ -83,6 +85,10 @@ class CrispyFormMixin:
         self.post_timeout = self.get_defaults('post_timeout')
 
         self.user = request_user
+        # Kept so the form, and the helper it builds, can resolve the Bootstrap template pack
+        # for this request. None when a form is built outside a modal view, in which case the
+        # pack falls back to the DJANGO_MODALS_TEMPLATE_PACK setting.
+        self.request = request
         self.slug = slug
         self.form_setup = form_setup
         self.pk = pk
@@ -185,7 +191,10 @@ class CrispyFormMixin:
 
     @staticmethod
     def row(*args):
-        return Div(*args, css_class='form-group row')
+        # Static so that it keeps working when called off the class, which means it reads the
+        # setting rather than this request -- the per-request callable form of the setting only
+        # reaches the places that have a request to hand.
+        return Div(*args, css_class=pack_class('form_group_row'))
 
     def field_section(self, *args):
         return Div(*args, css_class=self.helper.field_class)

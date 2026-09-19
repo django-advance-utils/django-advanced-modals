@@ -21,6 +21,18 @@ class Toggle(SourceBase):
     filename = 'bootstrap4-toggle.min'
 
 
+class Toggle5(SourceBase):
+    """bootstrap5-toggle, for a page running the bootstrap5 template pack.
+
+    The Bootstrap 4 build is vendored under static/; this one is not, so it always comes from
+    the CDN -- SourceBase forces cdn when static_path is None. It keeps the same jQuery plugin
+    name, so widgets/toggle.html calls bootstrapToggle() either way; what differs is the
+    attribute that marks the input, which is why the toggle widget is a packed template.
+    """
+    cdn_path = 'cdn.jsdelivr.net/npm/bootstrap5-toggle@5.1.1/'
+    filename = 'bootstrap5-toggle.min'
+
+
 class Select2(SourceBase):
     static_path = 'django_modals/'
     cdn_path = 'cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/'

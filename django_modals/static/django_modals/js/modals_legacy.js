@@ -177,9 +177,13 @@ if (typeof django_modal == 'undefined') {
       var left_pos;
       var modal_element = modal_container.children();
       modal_element.css('z-index', 1040 + 10 * open_modals);
+      // See modals.js: Bootstrap 5's jQuery plugin does not show on an options object, and
+      // reads backdrop/keyboard only from data-bs- attributes.
       modal_element.modal({
-        'backdrop': false
+        'backdrop': false,
+        'keyboard': false
       });
+      modal_element.modal('show');
       var modal_dialog = $('.modal-dialog', modal_element).first();
 
       if (document.documentElement.clientWidth - modal_dialog.width() > 20) {
