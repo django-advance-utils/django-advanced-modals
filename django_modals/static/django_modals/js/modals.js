@@ -17,6 +17,63 @@ if (typeof django_modal == 'undefined') {
         var process_lock = false;
         var post_load_event = new CustomEvent('modalPostLoad');
         var target;
+        // Modals whose hide has started and whose hidden.bs.modal has not arrived yet. A close is
+        // only half done when the command returns: Bootstrap runs the fade, and the modal is taken
+        // off the stack in hidden.bs.modal. Everything a response sends after its close is meant
+        // for the modal underneath, so it has to wait for that -- see hold_commands_while_closing.
+        // A counter, not a flag: one response may close two modals (see close below).
+        var closing_modals = 0;
+        // Longer than the fade so it never cuts a close short, short enough that a hidden.bs.modal
+        // that never comes -- a modal taken out of the DOM by other means -- cannot leave the
+        // page's commands held for good.
+        var close_hold_timeout = 2000;
+
+        // ajax_helpers pauses a response's remaining commands while ajax_busy is set, and close set
+        // it to stand for "a modal is going". It cannot: it is one flag shared by every request on
+        // the page, and ajax_error and each response's own handler clear it, so any request that
+        // landed during the fade let the rest of the commands run with the closing modal still on
+        // top. send_inputs posts to the top modal, so a set_value meant for the modal underneath
+        // fired that modal's triggers against the closing one, and a modal with no handler for the
+        // ajax name takes the post as a submit of its own form: an add modal saved itself over and
+        // over, each save sending the same commands back, and the loop ended by saving the form
+        // beneath it too. Reading closing_modals through the same flag keeps a close held until
+        // hidden.bs.modal regardless of what else finishes meanwhile.
+        function hold_commands_while_closing() {
+            var busy = ajax_helpers.ajax_busy;
+            Object.defineProperty(ajax_helpers, 'ajax_busy', {
+                get: function () { return busy || closing_modals > 0 },
+                set: function (value) { busy = value },
+                configurable: true,
+            });
+        }
+        hold_commands_while_closing();
+
+        // A close holds the queue once and releases it once, whether hidden.bs.modal arrives or the
+        // watchdog gets there first; closing_modals is a count of the holds still standing.
+        var closing_holds = [];
+
+        function hold_for_close() {
+            var hold = {released: false};
+            closing_holds.push(hold);
+            closing_modals += 1;
+            window.setTimeout(function () { release_close_hold(hold) }, close_hold_timeout);
+        }
+
+        function release_close_hold(hold) {
+            if (hold === undefined) {
+                hold = closing_holds.shift();
+            } else {
+                var index = closing_holds.indexOf(hold);
+                if (index > -1) {
+                    closing_holds.splice(index, 1);
+                }
+            }
+            if (hold === undefined || hold.released) {
+                return;
+            }
+            hold.released = true;
+            closing_modals -= 1;
+        }
 
         ajax_helpers.command_functions.reload = function () {
             if (open_modals > 1) {
@@ -46,7 +103,11 @@ if (typeof django_modal == 'undefined') {
             if (determine_type() === 'popup') {
                 window.close()
             } else {
-                ajax_helpers.ajax_busy = true;
+                // The hold is what marks the page busy now. Setting ajax_busy as well would set the
+                // flag behind the accessor, which only hidden.bs.modal clears, so a close whose
+                // hidden never came would stay busy however long after the watchdog had let the
+                // hold go -- the stuck queue the watchdog is there to prevent.
+                hold_for_close();
                 modal_div().modal('hide');
             }
         }
@@ -148,6 +209,7 @@ if (typeof django_modal == 'undefined') {
             }
             modal_dialog.css({top: open_modals*10 - 10, left: left_pos});
             modal_element.on('hidden.bs.modal', function (event) {
+                release_close_hold();
                 $(this).parent().remove();
                 open_modals -= 1;
                 if (open_modals === 0){

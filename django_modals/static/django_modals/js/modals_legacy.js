@@ -40,6 +40,59 @@ if (typeof django_modal == 'undefined') {
     var process_lock = false;
     var post_load_event = new CustomEvent('modalPostLoad');
     var target;
+    // Modals whose hide has started and whose hidden.bs.modal has not arrived yet, and how long a
+    // hold may stand if that event never comes. See modals.js for the whole of it: close only
+    // starts Bootstrap's fade, so everything a response sends after its close is meant for the
+    // modal underneath and has to wait, and ajax_busy cannot say so on its own because every
+    // request on the page shares it.
+    var closing_modals = 0;
+    var close_hold_timeout = 2000;
+    var closing_holds = [];
+
+    function hold_commands_while_closing() {
+      var busy = ajax_helpers.ajax_busy;
+      Object.defineProperty(ajax_helpers, 'ajax_busy', {
+        get: function () {
+          return busy || closing_modals > 0;
+        },
+        set: function (value) {
+          busy = value;
+        },
+        configurable: true
+      });
+    }
+
+    hold_commands_while_closing();
+
+    function hold_for_close() {
+      var hold = {
+        released: false
+      };
+      closing_holds.push(hold);
+      closing_modals += 1;
+      window.setTimeout(function () {
+        release_close_hold(hold);
+      }, close_hold_timeout);
+    }
+
+    function release_close_hold(hold) {
+      if (hold === undefined) {
+        hold = closing_holds.shift();
+      } else {
+        var index = closing_holds.indexOf(hold);
+
+        if (index > -1) {
+          closing_holds.splice(index, 1);
+        }
+      }
+
+      if (hold === undefined || hold.released) {
+        return;
+      }
+
+      hold.released = true;
+      closing_modals -= 1;
+    }
 
     ajax_helpers.command_functions.reload = function () {
       if (open_modals > 1) {
@@ -68,7 +121,10 @@ if (typeof django_modal == 'undefined') {
       if (determine_type() === 'popup') {
         window.close();
       } else {
-        ajax_helpers.ajax_busy = true;
+        // The hold marks the page busy; see modals.js. Setting ajax_busy as well would set the flag
+        // behind the accessor, which only hidden.bs.modal clears, leaving the queue stuck after the
+        // watchdog had released the hold.
+        hold_for_close();
         modal_div().modal('hide');
       }
     };
@@ -194,6 +250,7 @@ if (typeof django_modal == 'undefined') {
         left: left_pos
       });
       modal_element.on('hidden.bs.modal', function (event) {
+        release_close_hold();
         $(this).parent().remove();
         open_modals -= 1;
 
