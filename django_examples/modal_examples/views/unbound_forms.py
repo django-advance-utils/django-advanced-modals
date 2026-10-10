@@ -1,6 +1,7 @@
 from django.forms import TextInput
 from django.forms.fields import CharField, DateField
 from django.forms.widgets import Textarea
+from django.utils.safestring import mark_safe
 
 from crispy_forms.layout import HTML
 from show_src_code.modals import FormModal
@@ -98,7 +99,8 @@ class UnboundLayoutModal(FormModal):
     @staticmethod
     def form_setup(_form, *_args, **_kwargs):
         return [HTML('Explicit placement of fields'),
-                FieldEx('Name', prepended_text='<a href="/" style="margin:-10px" class="btn btn-success btn-sm">ff</a>'),
+                FieldEx('Name', prepended_text=mark_safe(
+                    '<a href="/" style="margin:-10px" class="btn btn-success btn-sm">ff</a>')),
                 FieldEx('Address', label_class='col-3 col-form-label-sm', field_class='col-12 input-group-sm'),
                 HTML('Enter notes here'),
                 FieldEx('Enquiry', label_class='col-3 col-form-label-sm', field_class='col-12 input-group-sm')]
