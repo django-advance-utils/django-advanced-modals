@@ -3,6 +3,10 @@ from django.forms.utils import pretty_name
 from crispy_forms.layout import Field, Div
 from crispy_forms.utils import TEMPLATE_PACK
 
+# crispy-forms 1.x calls a layout object's render(form, form_style, context, template_pack=...),
+# and 2.x dropped form_style: render(form, context, template_pack=...). The render methods here
+# take the positionals as *args and pass them on unchanged, so they work under either; where one
+# needs the context it is always the last of them.
 
 class Flex(Div):
     def __init__(self, *args, **kwargs):
@@ -11,9 +15,9 @@ class Flex(Div):
             css_class = f'{css_class} {kwargs.pop("css_class")}'
         super().__init__(*args, css_class=css_class, **kwargs)
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK, **kwargs):
+    def render(self, form, *args, template_pack=TEMPLATE_PACK, **kwargs):
         form.mode.append('flex')
-        flex_data = super().render(form, form_style, context, template_pack=TEMPLATE_PACK, flex_mode=True, **kwargs)
+        flex_data = super().render(form, *args, template_pack=TEMPLATE_PACK, flex_mode=True, **kwargs)
         form.mode.pop()
         return flex_data
 
@@ -27,13 +31,13 @@ class MultiFieldRow(Div):
         self.kwargs = kwargs
         super().__init__(*fields, css_class='row')
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK, **kwargs):
+    def render(self, form, *args, template_pack=TEMPLATE_PACK, **kwargs):
         form.mode = form.mode + ['no_labels', 'flex']
         self.fields = Label(self.label), Div(
             FieldEx(*self.fields),
             css_class=self.kwargs.get('css_class', form.helper.field_class) + ' d-flex'
         )
-        render_result = super().render(form, form_style, context, template_pack=TEMPLATE_PACK, **kwargs)
+        render_result = super().render(form, *args, template_pack=TEMPLATE_PACK, **kwargs)
         form.mode = form.mode[:-2]
         return render_result
 
@@ -43,7 +47,7 @@ class Label:
         self.fields = list(fields)
         self.kwargs = kwargs
 
-    def render(self, form, _form_style, _context, _template_pack=TEMPLATE_PACK, **_kwargs):
+    def render(self, form, *_args, **_kwargs):
         if 'css_class' in self.kwargs:
             css_class = self.kwargs['css_class']
         else:
@@ -91,7 +95,8 @@ class FieldEx(Field):
                 else:
                     extra_context[key] = kwargs[key]
 
-    def render(self, form, form_style, context, template_pack=TEMPLATE_PACK, extra_context=None, **kwargs):
+    def render(self, form, *args, template_pack=TEMPLATE_PACK, extra_context=None, **kwargs):
+        context = args[-1]
         if self.auto_placeholder or (self.auto_placeholder is None and getattr(form.helper, 'auto_placeholder', False)):
             self.add_placeholders(self.fields, form.fields)
         if extra_context is None:
@@ -115,8 +120,7 @@ class FieldEx(Field):
 
         content = self.get_rendered_fields(
             form,
-            form_style,
-            context,
+            *args,
             template_pack,
             template=template,
             attrs=self.attrs,
