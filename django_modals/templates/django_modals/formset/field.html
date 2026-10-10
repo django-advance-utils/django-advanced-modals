@@ -1,0 +1,13 @@
+{% comment %}
+One table cell of a formset, for {{ field }}. The empty form's row and every real row go through
+here, so a row added in the browser is the same as the rows the page started with.
+{% endcomment %}
+{% with field.field.wrapper_class as wrapper_class %}
+    {% if field.field.widget.formset_field_template %}
+        {% include field.field.widget.formset_field_template with tag="td" form_show_labels=False crispy_prepended_text=field.field.widget.crispy_kwargs.prepended_text crispy_appended_text=field.field.widget.crispy_kwargs.appended_text input_size=field.field.widget.crispy_kwargs.input_size %}
+    {% elif field.field.widget.crispy_kwargs.prepended_text or field.field.widget.crispy_kwargs.appended_text %}
+        {% include 'django_modals/formset/prepended_appended_text.html' with tag="td" form_show_labels=False crispy_prepended_text=field.field.widget.crispy_kwargs.prepended_text crispy_appended_text=field.field.widget.crispy_kwargs.appended_text input_size=field.field.widget.crispy_kwargs.input_size %}
+    {% else %}
+        {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+    {% endif %}
+{% endwith %}

@@ -40,10 +40,11 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = ('bootstrap4',)
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 ```
 
-On 2.x, `prepended_text` and `appended_text` are escaped, where 1.x printed them as HTML. Text
-there is unaffected, but HTML, such as an icon, has to be marked safe:
+On 2.x, `prepended_text`, `appended_text` and field labels are escaped, where 1.x printed them as
+HTML. Text there is unaffected, but HTML, such as an icon, has to be marked safe:
 `FieldEx('date', appended_text=mark_safe('<i class="fas fa-calendar-alt"></i>'))`. Marked safe, it
-renders the same on 1.x. The date and month pickers' own icons are marked safe already.
+renders the same on 1.x; the same goes for `label=`. The date and month pickers' own icons are
+marked safe already.
 
 Before 1.0.3 the layout objects in `django_modals.fields` worked on crispy-forms 1.x only, and every
 form modal failed on 2.x with `TypeError: FieldEx.render() missing 1 required positional argument:

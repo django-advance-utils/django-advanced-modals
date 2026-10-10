@@ -19,7 +19,11 @@
 <tr>
     <form id="{{ form.form_id }}">
         {% for field in form %}
-            {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+            {% if field.field.widget.formset_field_template %}
+                {% include field.field.widget.formset_field_template with tag="td" form_show_labels=False %}
+            {% else %}
+                {% include 'bootstrap4/field.html' with tag="td" form_show_labels=False %}
+            {% endif %}
         {% endfor %}
     </form>
 </tr>
