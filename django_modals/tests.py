@@ -11,9 +11,12 @@ from crispy_forms.layout import Layout
 from crispy_forms.utils import render_crispy_form
 from django import forms
 from django.test import SimpleTestCase
+from django.utils.safestring import mark_safe
 
 from django_modals.fields import FieldEx, FieldNoLabel, Flex, Label, MultiFieldRow
 from django_modals.form_helpers import RegularHelper
+from django_modals.widgets.jquery_datepicker import DatePicker
+from django_modals.widgets.month_picker import MonthPicker
 
 
 class _Form(forms.Form):
@@ -87,3 +90,23 @@ class EachLayoutObjectRenders(SimpleTestCase):
 
         self.assertIn('name="note"', html)
         self.assertIn('d-none', html)
+
+
+class PrependedAndAppendedTextIsEscapedUnlessMarkedSafe(SimpleTestCase):
+    """crispy-forms 1.x printed it with ``|safe``; crispy-bootstrap4 escapes it.
+
+    So HTML in ``prepended_text``/``appended_text`` has to be marked safe to render on 2.x, and
+    marked safe it renders the same on both.
+    """
+
+    ICON = '<i class="fas fa-calendar-alt fa-fw"></i>'
+
+    def test_marked_safe_it_is_markup(self):
+        self.assertIn(self.ICON, rendered(FieldEx('price', appended_text=mark_safe(self.ICON))))
+
+    def test_the_picker_widgets_icons_are_markup(self):
+        for widget in (DatePicker, MonthPicker):
+            with self.subTest(widget=widget.__name__):
+                html = rendered(FieldEx('price', appended_text=widget.crispy_kwargs['appended_text']))
+
+                self.assertIn(self.ICON, html)
