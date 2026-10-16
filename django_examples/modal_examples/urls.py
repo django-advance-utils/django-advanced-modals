@@ -20,6 +20,7 @@ import modal_examples.views.base64_examples as base64_examples
 import modal_examples.views.formset as formset
 import modal_examples.views.datatables as datatables
 import modal_examples.views.lazy as lazy_views
+import modal_examples.views.close_timing as close_timing
 from django_modals.task_modals import TaskModal
 from .tasks import DemoTask
 from .views.demo_mf_formset import MultiFormFormsetView, MultiFormFormsetCompanyModal
@@ -147,6 +148,12 @@ urlpatterns = [
     path('datatables', datatables.DatatablesView.as_view(), name='datatables'),
     path('lazy', lazy_views.LazyExamples.as_view(), name='lazy'),
     path('modal/lazy/', include('modal_examples.views.lazy')),
+
+    path('close-timing', close_timing.CloseTiming.as_view(), name='close_timing'),
+    path('modal/close-timing/parent/<str:slug>/', close_timing.CloseTimingParent.as_view(), name='close_timing_parent'),
+    path('modal/close-timing/chooser/<str:slug>/', close_timing.CloseTimingChooser.as_view(),
+         name='close_timing_chooser'),
+    path('modal/close-timing/child/<str:slug>/', close_timing.CloseTimingChild.as_view(), name='close_timing_child'),
 
     path('datatables/display-company/modal/', datatables.DisplayCompanyModal.as_view(), name='datatable_company_modal'),
     path('datatables/nested/modal/', datatables.DatatablesNestedModal.as_view(), name='datatables_nested_modal'),
