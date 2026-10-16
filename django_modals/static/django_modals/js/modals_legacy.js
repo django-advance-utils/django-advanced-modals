@@ -117,10 +117,11 @@ if (typeof django_modal == 'undefined') {
       }).forEach(release_close_hold);
     }
 
+    // Bootstrap 4's bundle sets a bootstrap global too, but its Modal has no getInstance.
     function bootstrap_modal(modal_element) {
       var instance = modal_element.data('bs.modal');
 
-      if (!instance && typeof bootstrap !== 'undefined' && bootstrap.Modal !== undefined) {
+      if (!instance && typeof bootstrap !== 'undefined' && bootstrap.Modal !== undefined && typeof bootstrap.Modal.getInstance === 'function') {
         instance = bootstrap.Modal.getInstance(modal_element[0]);
       }
 
@@ -129,8 +130,13 @@ if (typeof django_modal == 'undefined') {
 
     // Bootstrap's hide does nothing while a modal is still running its entrance, so a modal that
     // is still opening is hidden once it has opened; a hide the page refuses lets the hold go at
-    // once. See modals.js.
+    // once, and a shown.bs.modal callback still queued for a released hold does nothing. See
+    // modals.js.
     function hide_modal(modal_element, hold) {
+      if (hold.released) {
+        return;
+      }
+
       var instance = bootstrap_modal(modal_element);
 
       if (instance && instance._isTransitioning && instance._isShown) {
@@ -177,6 +183,11 @@ if (typeof django_modal == 'undefined') {
     };
 
     ajax_helpers.command_functions.close = function (command) {
+      // A response may send more closes than there are modals open; see modals.js.
+      if (modals.length === 0) {
+        return;
+      }
+
       if (command !== undefined && command.no_refresh === true) {
         modals[modals.length - 1].no_refresh = true;
       }

@@ -107,9 +107,11 @@ if (typeof django_modal == 'undefined') {
         }
 
         // Bootstrap 4 keeps a modal's instance in jQuery data, Bootstrap 5 in a registry of its own.
+        // Bootstrap 4's bundle sets a bootstrap global too, but its Modal has no getInstance.
         function bootstrap_modal(modal_element) {
             var instance = modal_element.data('bs.modal');
-            if (!instance && typeof bootstrap !== 'undefined' && bootstrap.Modal !== undefined) {
+            if (!instance && typeof bootstrap !== 'undefined' && bootstrap.Modal !== undefined
+                    && typeof bootstrap.Modal.getInstance === 'function') {
                 instance = bootstrap.Modal.getInstance(modal_element[0]);
             }
             return instance;
@@ -128,6 +130,12 @@ if (typeof django_modal == 'undefined') {
         // of its own. The hold is let go at once, as the page's own ajax_busy = false did before
         // the hold existed.
         function hide_modal(modal_element, hold) {
+            // An entrance that outlasts the watchdog leaves a shown.bs.modal callback queued from
+            // each look. Once one hide has been refused the hold is gone, and the rest must not
+            // try again: that would close a modal the page chose to keep.
+            if (hold.released) {
+                return;
+            }
             var instance = bootstrap_modal(modal_element);
             if (instance && instance._isTransitioning && instance._isShown) {
                 modal_element.one('shown.bs.modal', function () {
