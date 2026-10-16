@@ -41,10 +41,10 @@ if (typeof django_modal == 'undefined') {
     var post_load_event = new CustomEvent('modalPostLoad');
     var target;
     // Modals whose hide has started and whose hidden.bs.modal has not arrived yet, and how long a
-    // hold may stand if that event never comes. See modals.js for the whole of it: close only
-    // starts Bootstrap's fade, so everything a response sends after its close is meant for the
-    // modal underneath and has to wait, and ajax_busy cannot say so on its own because every
-    // request on the page shares it.
+    // close may go without its modal leaving the page before the watchdog looks at it. See
+    // modals.js for the whole of it: close only starts Bootstrap's fade, so everything a response
+    // sends after its close is meant for the modal underneath and has to wait, and ajax_busy
+    // cannot say so on its own because every request on the page shares it.
     var closing_modals = 0;
     var close_hold_timeout = 2000;
     var closing_holds = [];
@@ -64,34 +64,97 @@ if (typeof django_modal == 'undefined') {
 
     hold_commands_while_closing();
 
-    function hold_for_close() {
+    function hold_for_close(modal_element) {
       var hold = {
+        modal: modal_element[0],
         released: false
       };
       closing_holds.push(hold);
       closing_modals += 1;
+      watch_close_hold(hold);
+      return hold;
+    }
+
+    // A hold is let go only once its modal has left the page: the commands after a close are
+    // written for the modal underneath, and run against one still on top they re-submit its form.
+    // See modals.js for why the watchdog neither releases nor drops them.
+    function watch_close_hold(hold) {
       window.setTimeout(function () {
-        release_close_hold(hold);
+        if (hold.released) {
+          return;
+        }
+
+        if (hold.modal !== undefined && document.body.contains(hold.modal)) {
+          hide_modal($(hold.modal), hold);
+
+          if (!hold.released) {
+            watch_close_hold(hold);
+          }
+        } else {
+          release_close_hold(hold);
+        }
       }, close_hold_timeout);
     }
 
     function release_close_hold(hold) {
-      if (hold === undefined) {
-        hold = closing_holds.shift();
-      } else {
-        var index = closing_holds.indexOf(hold);
+      var index = closing_holds.indexOf(hold);
 
-        if (index > -1) {
-          closing_holds.splice(index, 1);
-        }
+      if (index > -1) {
+        closing_holds.splice(index, 1);
       }
 
-      if (hold === undefined || hold.released) {
+      if (hold.released) {
         return;
       }
 
       hold.released = true;
       closing_modals -= 1;
+    }
+
+    function release_close_holds(modal) {
+      closing_holds.filter(function (hold) {
+        return hold.modal === modal;
+      }).forEach(release_close_hold);
+    }
+
+    function bootstrap_modal(modal_element) {
+      var instance = modal_element.data('bs.modal');
+
+      if (!instance && typeof bootstrap !== 'undefined' && bootstrap.Modal !== undefined) {
+        instance = bootstrap.Modal.getInstance(modal_element[0]);
+      }
+
+      return instance;
+    }
+
+    // Bootstrap's hide does nothing while a modal is still running its entrance, so a modal that
+    // is still opening is hidden once it has opened; a hide the page refuses lets the hold go at
+    // once. See modals.js.
+    function hide_modal(modal_element, hold) {
+      var instance = bootstrap_modal(modal_element);
+
+      if (instance && instance._isTransitioning && instance._isShown) {
+        modal_element.one('shown.bs.modal', function () {
+          hide_modal(modal_element, hold);
+        });
+        return;
+      }
+
+      var hide_event;
+
+      var note_hide_event = function note_hide_event(event) {
+        if (event.target === modal_element[0]) {
+          hide_event = event;
+        }
+      };
+
+      modal_element.on('hide.bs.modal', note_hide_event);
+      modal_element.modal('hide');
+      modal_element.off('hide.bs.modal', note_hide_event);
+
+      if (hide_event !== undefined && hide_event.isDefaultPrevented()) {
+        release_close_hold(hold);
+      }
     }
 
     ajax_helpers.command_functions.reload = function () {
@@ -124,8 +187,8 @@ if (typeof django_modal == 'undefined') {
         // The hold marks the page busy; see modals.js. Setting ajax_busy as well would set the flag
         // behind the accessor, which only hidden.bs.modal clears, leaving the queue stuck after the
         // watchdog had released the hold.
-        hold_for_close();
-        modal_div().modal('hide');
+        var modal_element = modal_div();
+        hide_modal(modal_element, hold_for_close(modal_element));
       }
     };
 
@@ -250,7 +313,7 @@ if (typeof django_modal == 'undefined') {
         left: left_pos
       });
       modal_element.on('hidden.bs.modal', function (event) {
-        release_close_hold();
+        release_close_holds(this);
         $(this).parent().remove();
         open_modals -= 1;
 
