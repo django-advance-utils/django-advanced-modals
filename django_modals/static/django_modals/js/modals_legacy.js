@@ -129,9 +129,9 @@ if (typeof django_modal == 'undefined') {
     }
 
     // Bootstrap's hide does nothing while a modal is still running its entrance, so a modal that
-    // is still opening is hidden once it has opened; a hide the page refuses lets the hold go at
-    // once, and a shown.bs.modal callback still queued for a released hold does nothing. See
-    // modals.js.
+    // is still opening is hidden once it has opened; a hide the page refuses (the modal is still
+    // shown, and not moving, when the hide returns) lets the hold go at once, and a
+    // shown.bs.modal callback still queued for a released hold does nothing. See modals.js.
     function hide_modal(modal_element, hold) {
       if (hold.released) {
         return;
@@ -146,19 +146,10 @@ if (typeof django_modal == 'undefined') {
         return;
       }
 
-      var hide_event;
-
-      var note_hide_event = function note_hide_event(event) {
-        if (event.target === modal_element[0]) {
-          hide_event = event;
-        }
-      };
-
-      modal_element.on('hide.bs.modal', note_hide_event);
       modal_element.modal('hide');
-      modal_element.off('hide.bs.modal', note_hide_event);
+      instance = bootstrap_modal(modal_element);
 
-      if (hide_event !== undefined && hide_event.isDefaultPrevented()) {
+      if (instance && instance._isShown && !instance._isTransitioning) {
         release_close_hold(hold);
       }
     }

@@ -128,7 +128,9 @@ if (typeof django_modal == 'undefined') {
         // staying because the page says so, and what comes next is the page's business: holding
         // would leave the page waiting on itself whenever it settles the refusal with a request
         // of its own. The hold is let go at once, as the page's own ajax_busy = false did before
-        // the hold existed.
+        // the hold existed. Bootstrap's hide clears _isShown only once nothing has refused it, so
+        // a modal still shown, and not moving, when the hide returns was refused -- by whichever
+        // handler, even one that also stopped the event before any listener of ours could see it.
         function hide_modal(modal_element, hold) {
             // An entrance that outlasts the watchdog leaves a shown.bs.modal callback queued from
             // each look. Once one hide has been refused the hold is gone, and the rest must not
@@ -143,19 +145,9 @@ if (typeof django_modal == 'undefined') {
                 });
                 return;
             }
-            // jQuery hands every handler the one event object, so after the hide has returned it
-            // says whether anything along the way -- a handler on the modal or one delegated from
-            // the document -- prevented it.
-            var hide_event;
-            var note_hide_event = function (event) {
-                if (event.target === modal_element[0]) {
-                    hide_event = event;
-                }
-            };
-            modal_element.on('hide.bs.modal', note_hide_event);
             modal_element.modal('hide');
-            modal_element.off('hide.bs.modal', note_hide_event);
-            if (hide_event !== undefined && hide_event.isDefaultPrevented()) {
+            instance = bootstrap_modal(modal_element);
+            if (instance && instance._isShown && !instance._isTransitioning) {
                 release_close_hold(hold);
             }
         }
