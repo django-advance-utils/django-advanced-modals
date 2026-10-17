@@ -1,0 +1,31 @@
+{% extends 'modal_examples/demo.html' %}
+
+{% block contents %}
+
+    <div class="m-4">
+        <h4>A close that lands while the modal is still opening</h4>
+        <p>
+            Open the parent, add a child and choose New child. The child form replaces the chooser, and the
+            page submits it 50ms into its entrance, before Bootstrap has finished bringing it in. The child
+            should save once and close, and the parent should hear about it once and stay open.
+        </p>
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="submit-while-opening" checked>
+            <label class="form-check-label" for="submit-while-opening">Submit the child as it opens</label>
+        </div>
+        {{ menus.modals.render }}
+        <ol id="close-timing-log" class="mt-3"></ol>
+    </div>
+
+    <script>
+        $(document).on('show.bs.modal', '#modal-2 > .modal', function () {
+            var modal = this;
+            if ($('#submit-while-opening').is(':checked') && $('.modal-submit', modal).length) {
+                window.setTimeout(function () {
+                    $('.modal-submit', modal).click();
+                }, 50);
+            }
+        });
+    </script>
+
+{% endblock %}

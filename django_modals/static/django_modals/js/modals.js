@@ -23,9 +23,9 @@ if (typeof django_modal == 'undefined') {
         // for the modal underneath, so it has to wait for that -- see hold_commands_while_closing.
         // A counter, not a flag: one response may close two modals (see close below).
         var closing_modals = 0;
-        // Longer than the fade so it never cuts a close short, short enough that a hidden.bs.modal
-        // that never comes -- a modal taken out of the DOM by other means -- cannot leave the
-        // page's commands held for good.
+        // How long a close may go without its modal leaving the page before the watchdog looks at
+        // it. Longer than the rest of an entrance and the fade put together, so it never steps in
+        // on a close that is going as it should.
         var close_hold_timeout = 2000;
 
         // ajax_helpers pauses a response's remaining commands while ajax_busy is set, and close set
@@ -48,31 +48,108 @@ if (typeof django_modal == 'undefined') {
         }
         hold_commands_while_closing();
 
-        // A close holds the queue once and releases it once, whether hidden.bs.modal arrives or the
-        // watchdog gets there first; closing_modals is a count of the holds still standing.
+        // A close holds the queue once and releases it once; closing_modals is a count of the holds
+        // still standing. Each hold knows the modal it is for, so a modal's hidden.bs.modal lets go
+        // of that modal's holds and nobody else's.
         var closing_holds = [];
 
-        function hold_for_close() {
-            var hold = {released: false};
+        function hold_for_close(modal_element) {
+            var hold = {modal: modal_element[0], released: false};
             closing_holds.push(hold);
             closing_modals += 1;
-            window.setTimeout(function () { release_close_hold(hold) }, close_hold_timeout);
+            watch_close_hold(hold);
+            return hold;
+        }
+
+        // The watchdog used to let a hold go when its time was up whether or not the modal had
+        // gone, and when it had not, everything after the close -- written for the modal
+        // underneath -- ran against the one still on top. send_inputs posts to the top modal, and
+        // a modal with no handler for the button takes the post as a submit of its own form, so a
+        // form that had already saved saved again, and the close each save answered with took
+        // down the modal beneath it as well. Releasing it is no answer, and neither is throwing
+        // the commands away: they belong to ajax_helpers' queue, and dropping them would leave a
+        // saved form open with the form beneath it never told, for someone to save again by hand.
+        // So a hold is let go only once its modal has left the page. While the modal is still
+        // there the watchdog asks for the hide again and looks again a period later; a modal taken
+        // out of the DOM by other means is released at the next look.
+        function watch_close_hold(hold) {
+            window.setTimeout(function () {
+                if (hold.released) {
+                    return;
+                }
+                if (hold.modal !== undefined && document.body.contains(hold.modal)) {
+                    hide_modal($(hold.modal), hold);
+                    if (!hold.released) {
+                        watch_close_hold(hold);
+                    }
+                } else {
+                    release_close_hold(hold);
+                }
+            }, close_hold_timeout);
         }
 
         function release_close_hold(hold) {
-            if (hold === undefined) {
-                hold = closing_holds.shift();
-            } else {
-                var index = closing_holds.indexOf(hold);
-                if (index > -1) {
-                    closing_holds.splice(index, 1);
-                }
+            var index = closing_holds.indexOf(hold);
+            if (index > -1) {
+                closing_holds.splice(index, 1);
             }
-            if (hold === undefined || hold.released) {
+            if (hold.released) {
                 return;
             }
             hold.released = true;
             closing_modals -= 1;
+        }
+
+        function release_close_holds(modal) {
+            closing_holds.filter(function (hold) {
+                return hold.modal === modal;
+            }).forEach(release_close_hold);
+        }
+
+        // Bootstrap 4 keeps a modal's instance in jQuery data, Bootstrap 5 in a registry of its own.
+        // Bootstrap 4's bundle sets a bootstrap global too, but its Modal has no getInstance.
+        function bootstrap_modal(modal_element) {
+            var instance = modal_element.data('bs.modal');
+            if (!instance && typeof bootstrap !== 'undefined' && bootstrap.Modal !== undefined
+                    && typeof bootstrap.Modal.getInstance === 'function') {
+                instance = bootstrap.Modal.getInstance(modal_element[0]);
+            }
+            return instance;
+        }
+
+        // Bootstrap's hide does nothing at all while a modal is still running its entrance (about
+        // 300ms of fade and slide): no hide.bs.modal, no hidden.bs.modal. A form submitted as it
+        // appears is answered inside that, and its close was simply lost; the modal stayed, and
+        // the hold waited out the watchdog. A modal that is still opening is hidden once it has
+        // opened instead. _isTransitioning and _isShown are the two fields Bootstrap's own hide
+        // checks before it gives up; both versions name them the same.
+        //
+        // A page may also refuse the hide on purpose, by preventing hide.bs.modal. That modal is
+        // staying because the page says so, and what comes next is the page's business: holding
+        // would leave the page waiting on itself whenever it settles the refusal with a request
+        // of its own. The hold is let go at once, as the page's own ajax_busy = false did before
+        // the hold existed. Bootstrap's hide clears _isShown only once nothing has refused it, so
+        // a modal still shown, and not moving, when the hide returns was refused -- by whichever
+        // handler, even one that also stopped the event before any listener of ours could see it.
+        function hide_modal(modal_element, hold) {
+            // An entrance that outlasts the watchdog leaves a shown.bs.modal callback queued from
+            // each look. Once one hide has been refused the hold is gone, and the rest must not
+            // try again: that would close a modal the page chose to keep.
+            if (hold.released) {
+                return;
+            }
+            var instance = bootstrap_modal(modal_element);
+            if (instance && instance._isTransitioning && instance._isShown) {
+                modal_element.one('shown.bs.modal', function () {
+                    hide_modal(modal_element, hold);
+                });
+                return;
+            }
+            modal_element.modal('hide');
+            instance = bootstrap_modal(modal_element);
+            if (instance && instance._isShown && !instance._isTransitioning) {
+                release_close_hold(hold);
+            }
         }
 
         ajax_helpers.command_functions.reload = function () {
@@ -107,8 +184,8 @@ if (typeof django_modal == 'undefined') {
                 // flag behind the accessor, which only hidden.bs.modal clears, so a close whose
                 // hidden never came would stay busy however long after the watchdog had let the
                 // hold go -- the stuck queue the watchdog is there to prevent.
-                hold_for_close();
-                modal_div().modal('hide');
+                var modal_element = modal_div();
+                hide_modal(modal_element, hold_for_close(modal_element));
             }
         }
         ajax_helpers.command_functions.overwrite_modal = function (command) {
@@ -209,7 +286,7 @@ if (typeof django_modal == 'undefined') {
             }
             modal_dialog.css({top: open_modals*10 - 10, left: left_pos});
             modal_element.on('hidden.bs.modal', function (event) {
-                release_close_hold();
+                release_close_holds(this);
                 $(this).parent().remove();
                 open_modals -= 1;
                 if (open_modals === 0){

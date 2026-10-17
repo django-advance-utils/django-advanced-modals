@@ -467,6 +467,12 @@ return self.command_response()
 return self.command_response('overwrite_modal', html=rendered_html)
 ```
 
+A `close` holds the commands after it in the same response until the modal has gone, so they act on
+the modal underneath: `post_modal`, and anything else that ends in `send_inputs`, posts to whichever
+modal is on top. A close that arrives while the modal is still opening, which Bootstrap would ignore,
+takes effect once it has opened. If the page refuses the hide by preventing `hide.bs.modal`, the
+modal stays and the commands after the close run at once.
+
 Custom button handlers are methods named `button_<name>`:
 
 ```python
