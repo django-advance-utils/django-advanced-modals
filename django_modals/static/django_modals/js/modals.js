@@ -113,8 +113,9 @@ if (typeof django_modal == 'undefined') {
         // request, so they waited for it to show and then ran with it on top. send_inputs posts
         // to the top modal, so a post meant for the modal underneath went to the new one instead,
         // which has no handler for it. Run now, they reach the modal they were written for before
-        // any click can be handled. ajax_helpers before 1.0.7 has no resume_commands, and there
-        // the poll carries on as it did.
+        // any click can be handled. This package needs ajax-advanced-helpers 1.0.7, which has
+        // resume_commands; a page still holding an older ajax_helpers.js from a cache has not, and
+        // there the poll carries on as it did.
         function resume_held_commands() {
             if (typeof ajax_helpers.resume_commands === 'function') {
                 ajax_helpers.resume_commands();
@@ -164,6 +165,10 @@ if (typeof django_modal == 'undefined') {
             instance = bootstrap_modal(modal_element);
             if (instance && instance._isShown && !instance._isTransitioning) {
                 release_close_hold(hold);
+                // Refused from the close command, the same response is still running and carries
+                // on once the hold is gone, so this only notes the resume; from the watchdog it
+                // runs the rest now rather than leave it to the poll.
+                resume_held_commands();
             }
         }
 

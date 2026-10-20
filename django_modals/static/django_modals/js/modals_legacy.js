@@ -160,6 +160,7 @@ if (typeof django_modal == 'undefined') {
 
       if (instance && instance._isShown && !instance._isTransitioning) {
         release_close_hold(hold);
+        resume_held_commands();
       }
     }
 

@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "ajax-advanced-helpers>=1.0.0",
+    "ajax-advanced-helpers>=1.0.7",
     "django-advanced-menus>=1.0.0",
     "django-crispy-forms",
     "make-html",
