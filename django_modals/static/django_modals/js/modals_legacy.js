@@ -92,6 +92,7 @@ if (typeof django_modal == 'undefined') {
           }
         } else {
           release_close_hold(hold);
+          resume_held_commands();
         }
       }, close_hold_timeout);
     }
@@ -115,6 +116,14 @@ if (typeof django_modal == 'undefined') {
       closing_holds.filter(function (hold) {
         return hold.modal === modal;
       }).forEach(release_close_hold);
+    }
+
+    // Runs the commands a close held as soon as nothing holds them, rather than at ajax_helpers'
+    // next poll, by when another modal may be on top. See modals.js.
+    function resume_held_commands() {
+      if (typeof ajax_helpers.resume_commands === 'function') {
+        ajax_helpers.resume_commands();
+      }
     }
 
     // Bootstrap 4's bundle sets a bootstrap global too, but its Modal has no getInstance.
@@ -331,9 +340,12 @@ if (typeof django_modal == 'undefined') {
         if (open_modals > 0 && closing_modal.no_refresh !== true) {
           send_inputs('refresh_modal');
         }
+
+        resume_held_commands();
       });
       modal_element.on('shown.bs.modal', function (event) {
         ajax_helpers.set_ajax_busy(false, true);
+        resume_held_commands();
       });
       disable_enter_key(); // modalPostLoad used toconfigure datepicker/select2 etc
 
