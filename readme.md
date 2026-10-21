@@ -244,6 +244,29 @@ class CompanyModal(ModelFormModal):
         return user.groups.filter(name='editors').exists()
 ```
 
+### The project's permission check
+
+Before any of the above, `BaseModalMixin.dispatch` can ask the project. Name a function in
+`settings.DJANGO_ADVANCED_PERMISSION_CHECK`:
+
+```python
+DJANGO_ADVANCED_PERMISSION_CHECK = 'myproject.permissions.check'
+
+def check(request, kind, name, obj=None):  # kind 'modal', name modal_permission_name(), obj the modal
+    return True
+```
+
+It is asked when the modal opens, when it is submitted and for every button posted to it, and
+through `view_permission` (django-advanced-menus' hook on a link's target) for every menu item that
+opens it, which is hidden when refused. The name
+is the modal's `permission_name` if it has one, else the url name it was reached by (what a menu
+item opening it is called), else its dotted class path when it is drawn from inside another view. A
+refused modal shows a "Permission denied" message (`modal_permission_denied`, which a modal can
+override) instead of opening. A bare `Modal` -- the message boxes `message()` and `confirm()` draw,
+and the refusal itself -- is never asked; set `check_permission = False` to exempt another. With the
+setting unset every modal opens. ajax-advanced-helpers and
+django-advanced-datatables read the same setting, each with a `kind` of its own.
+
 ---
 
 ## ModelFormModal Reference
