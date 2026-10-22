@@ -13,6 +13,7 @@ from django.views.generic.base import TemplateView
 from django_menus.menu import HtmlMenu, HtmlMenuItem
 from html_classes.font_awesome import font_awesome
 from html_classes.html import HtmlButton
+from django_modals.permissions import is_permitted
 from django_modals.helper import (render_modal, modal_button, modal_button_group, ajax_modal_redirect,
                                   modal_button_method, ajax_modal_replace)
 
@@ -33,6 +34,10 @@ class BaseModalMixin(AjaxHelpers):
     button_group_css = None
     size = 'lg'
     no_parent_template = 'django_modals/blank_page_form.html'
+    permission_name = None
+    check_permission = True
+    permission_denied_title = 'Permission denied'
+    permission_denied_message = 'You do not have permission to do this.'
 
     def __init__(self):
         super().__init__()
@@ -82,9 +87,42 @@ class BaseModalMixin(AjaxHelpers):
             self.slug.update(base64_data)
             self.kwargs.update(base64_data)
 
+    @classmethod
+    def permission_checked(cls):
+        return cls.check_permission and cls is not Modal
+
+    @classmethod
+    def view_permission(cls, request, menu_item):
+        if not cls.permission_checked():
+            return True
+        name = cls.permission_name or menu_item.resolved_url.view_name
+        return is_permitted(request, 'modal', name, cls)
+
+    def modal_permission_name(self):
+        if self.permission_name:
+            return self.permission_name
+        match = getattr(self.request, 'resolver_match', None)
+        if match is not None and getattr(match.func, 'view_class', None) is type(self):
+            return match.view_name
+        return f'{type(self).__module__}.{type(self).__qualname__}'
+
+    def modal_permission(self):
+        if not self.permission_checked():
+            return True
+        return is_permitted(self.request, 'modal', self.modal_permission_name(), self)
+
+    def modal_permission_denied(self):
+        if self.request.method == 'GET':
+            return Modal.as_view()(self.request, modal_title=self.permission_denied_title,
+                                   message=self.permission_denied_message)
+        return self.modal_replace(modal_class=Modal, message=self.permission_denied_message,
+                                  modal_title=self.permission_denied_title)
+
     def dispatch(self, request, *args, **kwargs):
         self.split_slug(kwargs)
         self.split_base64(kwargs)
+        if not self.modal_permission():
+            return self.modal_permission_denied()
         if self.process_slug_kwargs():
             # noinspection PyUnresolvedReferences
             return super().dispatch(request, *args, **self.kwargs)
