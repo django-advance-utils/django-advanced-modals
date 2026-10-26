@@ -39,11 +39,18 @@ class TaskModal(Modal):
         if hasattr(self, 'state_' + task_result.state.lower()):
             return getattr(self, 'state_' + task_result.state.lower())(task_result)
 
-        if task_result.info:
+        # Read once. Until a task has finished, Celery asks the result backend again on every access
+        # of ``info``, so testing ``'message' in task_result.info`` and then reading
+        # ``task_result.info['message']`` could see two different results: a task finishing in
+        # between left a result with no message (a KeyError, and a poll that never went on), and one
+        # failing left the exception, which has no ``get``. Anything that is not progress is left
+        # for the next poll, which sees the finished state.
+        info = task_result.info
+        if info and isinstance(info, dict):
             self.add_command('set_css', selector='#file_progress_bar', prop='width',
-                             val=f'{task_result.info.get("current", 0)}%')
-            if 'message' in task_result.info:
-                self.add_command('html', selector='#task_message', html=task_result.info['message'])
+                             val=f'{info.get("current", 0)}%')
+            if 'message' in info:
+                self.add_command('html', selector='#task_message', html=info['message'])
 
         return self.command_response(
             'timeout', time=self.refresh_ms,
