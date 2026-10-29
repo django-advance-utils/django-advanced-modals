@@ -36,14 +36,16 @@ class TaskModal(Modal):
     def ajax_check_result(self, *, task_id, **_kwargs):
         task_result = self.task.AsyncResult(task_id)
 
-        if hasattr(self, 'state_' + task_result.state.lower()):
-            return getattr(self, 'state_' + task_result.state.lower())(task_result)
+        handler = getattr(self, 'state_' + task_result.state.lower(), None)
+        if handler:
+            return handler(task_result)
 
-        if task_result.info:
+        info = task_result.info
+        if isinstance(info, dict) and 'commands' not in info:
             self.add_command('set_css', selector='#file_progress_bar', prop='width',
-                             val=f'{task_result.info.get("current", 0)}%')
-            if 'message' in task_result.info:
-                self.add_command('html', selector='#task_message', html=task_result.info['message'])
+                             val=f'{info.get("current", 0)}%')
+            if 'message' in info:
+                self.add_command('html', selector='#task_message', html=info['message'])
 
         return self.command_response(
             'timeout', time=self.refresh_ms,
