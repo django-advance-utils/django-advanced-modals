@@ -12,7 +12,6 @@ class DefaultInclude(SourceBase):
 class Modals(SourceBase):
     static_path = 'django_modals/'
     filename = 'modals'
-    legacy_js = 'modals_legacy.js'
 
 
 class Toggle(SourceBase):
